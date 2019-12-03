@@ -104,6 +104,7 @@ var PreviousReleaseRegistry = ""
 var ConfigFile = ""
 var Config *KubeVirtTestsConfiguration
 var SkipShasumCheck bool
+var CreateStorageClass bool
 
 var DeployTestingInfrastructureFlag = false
 var PathToTestingInfrastrucureManifests = ""
@@ -128,6 +129,7 @@ func init() {
 	flag.StringVar(&PreviousReleaseRegistry, "previous-release-registry", "", "Set registry of the release to test updating from")
 	flag.StringVar(&ConfigFile, "config", "tests/default-config.json", "Path to a JSON formatted file from which the test suite will load its configuration. The path may be absolute or relative; relative paths start at the current working directory.")
 	flag.BoolVar(&SkipShasumCheck, "skip-shasums-check", false, "Skip tests with sha sums.")
+	flag.BoolVar(&CreateStorageClass, "create-storageclass", false, "create and delete storageclass")
 }
 
 func FlagParse() {
@@ -553,8 +555,10 @@ func AfterTestSuitCleanup() {
 	DeletePVC(osAlpineHostPath)
 	DeletePV(osAlpineHostPath)
 
-	deleteStorageClass(Config.StorageClassHostPath)
-	deleteStorageClass(Config.StorageClassBlockVolume)
+	if CreateStorageClass {
+		deleteStorageClass(Config.StorageClassHostPath)
+		deleteStorageClass(Config.StorageClassBlockVolume)
+	}
 
 	if DeployTestingInfrastructureFlag {
 		WipeTestingInfrastructure()
@@ -725,8 +729,10 @@ func BeforeTestSuitSetup() {
 		return len(nodes.Items)
 	}, 5*time.Minute, 10*time.Second).ShouldNot(BeZero(), "no schedulable nodes found")
 
-	createStorageClass(Config.StorageClassHostPath)
-	createStorageClass(Config.StorageClassBlockVolume)
+	if CreateStorageClass {
+		createStorageClass(Config.StorageClassHostPath)
+		createStorageClass(Config.StorageClassBlockVolume)
+	}
 
 	CreateHostPathPv(osAlpineHostPath, HostPathAlpine)
 	CreateHostPathPVC(osAlpineHostPath, defaultDiskSize)
